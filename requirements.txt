@@ -1,0 +1,4 @@
+django==3.0.5
+# python-dotenv==0.13.0
+# requests==2.23.0
+djangorestframework
