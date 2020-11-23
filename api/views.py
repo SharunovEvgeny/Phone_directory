@@ -1,7 +1,3 @@
-from django.db.migrations import serializer
-from django.http import Http404
-from django.shortcuts import render
-
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 
@@ -19,6 +15,17 @@ class ContactViewSet(viewsets.ModelViewSet):
             return ContactDeleteSerializer
         else:
             return self.serializer_class
+
+    def create(self, request, *args, **kwargs):
+        # Переопределение метода create для проверки данных
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            self.perform_create(serializer)
+        except:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def destroy(self, request, *args, **kwargs):
         # Переопределение метода destroy
@@ -39,7 +46,7 @@ class ContactReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
         filter_args = {'name': self.request.query_params.get('name'),
                        'surname': self.request.query_params.get('surname'),
                        'birthday': self.request.query_params.get('birthday'),
-                       'numbers__correctNumber':self.request.query_params.get('numbers')}
+                       'numbers__correctNumber': self.request.query_params.get('numbers')}
         filter_args = dict((key, value) for key, value in filter_args.items() if value is not None)
         contacts = contacts.filter(**filter_args)
         if contacts:

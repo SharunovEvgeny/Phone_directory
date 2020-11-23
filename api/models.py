@@ -2,8 +2,8 @@ from django.db import models
 
 
 class Number(models.Model):
-    correctNumber = models.CharField("Корректный номер", max_length=11)
-    category = models.CharField("Категория",max_length=150,null=True)
+    correctNumber = models.CharField("Корректный номер", max_length=12)
+    category = models.CharField("Категория",max_length=150,default="Отсутствует")
 
 
 class Contact(models.Model):
