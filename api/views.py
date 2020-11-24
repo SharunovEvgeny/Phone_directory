@@ -9,6 +9,14 @@ class ContactViewSet(viewsets.ModelViewSet):
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
 
+    def get_queryset(self, *args):
+        # Задание queryset взависимости от действия
+        if self.action == 'update':
+            print(*args, flush=True)
+            # return Contact.objects.get(name=args, surname=args['surname'])
+        else:
+            return self.serializer_class
+
     def get_serializer_class(self):
         # Задание сериализатора взависимости от действия
         if self.action == 'destroy':
@@ -19,6 +27,7 @@ class ContactViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         # Переопределение метода create для проверки данных
         serializer = self.get_serializer(data=request.data)
+
         serializer.is_valid(raise_exception=True)
         try:
             self.perform_create(serializer)
@@ -36,6 +45,20 @@ class ContactViewSet(viewsets.ModelViewSet):
         except:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def update(self, request, *args, **kwargs):
+        try:
+            contact = Contact.objects.get(name=kwargs['name'], surname=kwargs['surname'])
+            serializer = self.get_serializer(data=request.data,instance=contact)
+
+            serializer.is_valid(raise_exception=True)
+            try:
+                self.perform_update(serializer)
+            except:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK, headers=headers)
+        except:
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 class ContactReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Contact.objects.all()
@@ -43,6 +66,7 @@ class ContactReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         contacts = self.queryset
+
         filter_args = {'name': self.request.query_params.get('name'),
                        'surname': self.request.query_params.get('surname'),
                        'birthday': self.request.query_params.get('birthday'),

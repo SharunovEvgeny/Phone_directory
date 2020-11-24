@@ -2,136 +2,192 @@ from tkinter import *
 from tkinter import messagebox
 
 import requests
-from tkinter import *
 
-URL = "http://127.0.0.1:8000/api/"
-
-def createToplevel(x,y,color):
-    levelTop = Toplevel(root)
-    levelTop.geometry(f'{x}x{y}')
-    levelTop['bg'] = f'{color}'
-    levelTop.resizable(width=False, height=False)
-    # levelTop.grab_set()
-    # levelTop.focus_set()
-    return levelTop
+from interface.createHelper import createToplevel, createScrollFrame, enterContacts, validNumberAndBirthday, validData, \
+    age, creatorFieldsForContact, creatorSendContact, chooseContacts
 
 
+def getAge():
+    def sendGetAge():
+        response = requests.get(URL + f"contacts/?name={name.get().title()}&surname={surname.get().title()}")
+        if response.status_code != 200 or response.json() == []:
+            messagebox.showerror(title="Ошибка", message="Контакта с таким именим и фамилией нет")
+        else:
 
+            messagebox.showinfo(title="Успешно",
+                                message=f"Возраст контакта: {age(str(response.json()[0]['birthday']))}")
+            getAgeBox.destroy()
+
+    getAgeBox = createToplevel(500, 200, "#FFDEAD", root)
+    Label(getAgeBox, text="Введите Имя:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=0, column=0)
+    name = Entry(getAgeBox, width=31, font=40)
+    name.grid(row=0, column=1)
+    Label(getAgeBox, text="Введите Фамилию:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=1, column=0)
+    surname = Entry(getAgeBox, width=31, font=40)
+    surname.grid(row=1, column=1)
+    Button(getAgeBox, text='Узнать', bg='#ADFF2F', command=sendGetAge).grid(row=34)
+
+
+def filterContacts():
+    def sendFilterContacts():
+        correctNumber = number.get()
+        if not validNumberAndBirthday(correctNumber):
+            return
+        if not validNumberAndBirthday(birthday=birthday.get()):
+            return
+        if not validData(birthday.get()):
+            return
+        if re.match(r"\+7\d\d\d\d\d\d\d\d\d\d", str(correctNumber)):
+            correctNumber = correctNumber[2:]
+            correctNumber = '8' + correctNumber
+        requestsText = f"{URL}contacts/?"
+        if name.get() != "":
+            requestsText += f"name={name.get().title()}&"
+        if surname.get() != "":
+            requestsText += f"surname={surname.get().title()}&"
+        if birthday.get() != "":
+            requestsText += f"birthday={birthday.get()}&"
+        if number.get() != "":
+            requestsText += f"numbers={correctNumber}&"
+        response = requests.get(requestsText)
+        if response.json() == [] or response.status_code != 200:
+            messagebox.showerror(title="Ошибка", message="Нет таких контактов")
+        else:
+            sendFilterBox = createToplevel(600, 400, "#FF00FF", root=root)
+            frame = createScrollFrame(sendFilterBox, "#FF00FF")
+            enterContacts(frame=frame, contacts=response.json())
+
+    filterContactsBox = createToplevel(500, 300, "#FFDEAD", root=root)
+    Label(filterContactsBox, text="Введите Имя:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=0, column=0)
+    name = Entry(filterContactsBox, width=31, font=40)
+    name.grid(row=0, column=1)
+    Label(filterContactsBox, text="Введите Фамилию:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=1, column=0)
+    surname = Entry(filterContactsBox, width=31, font=40)
+    surname.grid(row=1, column=1)
+    Label(filterContactsBox, text="Введите Дату рождения:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=2, column=0)
+    birthday = Entry(filterContactsBox, width=31, font=40)
+    birthday.grid(row=2, column=1)
+    Label(filterContactsBox, text="Введите Номер:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=3, column=0)
+    number = Entry(filterContactsBox, width=31, font=40)
+    number.grid(row=3, column=1)
+    Label(filterContactsBox, text="Заполните нужные поля:", font=40, bg='#FFDEAD').grid(row=4, column=0)
+    Button(filterContactsBox, text='Отфильтровать', bg='#ADFF2F', command=sendFilterContacts).grid(row=4, column=1)
+
+def deleteContactByNumber():
+    def sendContactDelete():
+        def sendContacts():
+            for count,contact in enumerate(contactsDelete):
+                if checkboxs[count].get()==1:
+                    requests.delete(URL + f"contactDelete/{contact}")
+            messagebox.showinfo(title="Успешно", message="Контакт удалён")
+            deletsBox.destroy()
+        response = requests.get(URL + f"contacts/?numbers={number.get()}")
+        if response.status_code == 204 or response.status_code == 404:
+            messagebox.showerror(title="Ошибка", message="Контакта с таким номером нет")
+        else:
+            #messagebox.showinfo(title="Успешно", message="Контакт удалён")
+            deleteContactBox.destroy()
+            deletsBox = createToplevel(700, 700, "#FF00FF", root=root)
+            frame = createScrollFrame(deletsBox, "#FF00FF")
+            checkboxs,contactsDelete,countRow=chooseContacts(frame=frame, contacts=response.json())
+            Button(frame, text='Удалить', bg='#ADFF2F', command=sendContacts).grid(row=countRow+2)
+
+
+
+    deleteContactBox = createToplevel(500, 150, "#FFDEAD", root)
+    Label(deleteContactBox, text="Введите Номер:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=0, column=0)
+    number = Entry(deleteContactBox, width=31, font=40)
+    number.grid(row=0, column=1)
+    Button(deleteContactBox, text='Удалить', bg='#ADFF2F', command=sendContactDelete).grid(row=1)
 
 
 def deleteContactByNameAndSurname():
-    def sendContactDelet():
-        response = requests.delete(URL + f"contactDelete/{name.get()}&{surname.get()}")
-        if response.status_code==204 or response.status_code==404:
+    def sendContactDelete():
+        response = requests.delete(URL + f"contactDelete/{name.get().title()}&{surname.get().title()}")
+        if response.status_code == 204 or response.status_code == 404:
             messagebox.showerror(title="Ошибка", message="Контакта с таким именим и фамилией нет")
         else:
-            messagebox.showinfo(title="Успешно",message="Контакт удалён")
+            messagebox.showinfo(title="Успешно", message="Контакт удалён")
             deleteContactBox.destroy()
 
-    deleteContactBox=createToplevel(500,200,"#FFDEAD")
+    deleteContactBox = createToplevel(500, 200, "#FFDEAD", root)
     Label(deleteContactBox, text="Введите Имя:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=0, column=0)
     name = Entry(deleteContactBox, width=31, font=40)
     name.grid(row=0, column=1)
     Label(deleteContactBox, text="Введите Фамилию:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=1, column=0)
     surname = Entry(deleteContactBox, width=31, font=40)
     surname.grid(row=1, column=1)
-    Button(deleteContactBox, text='Удалить', bg='#ADFF2F', command=sendContactDelet).grid(row=34)
+    Button(deleteContactBox, text='Удалить', bg='#ADFF2F', command=sendContactDelete).grid(row=34)
+
+
+def updateContact():
+    def sendContactUpdate():
+        def sendContact():
+            if creatorSendContact(URL=URL, name=name, surname=surname, birthday=birthday, numbers=numbers,
+                                  isUpdate=True, updateName=intputName, updateSurname=inputSurname):
+                createContactsBox.destroy()
+        inputSurname=surnameInst.get()
+        intputName=nameInst.get()
+        response = requests.get(URL + f"contacts/?name={intputName.title()}&surname={inputSurname.title()}")
+        if response.json() != [] or response.status_code != 200:
+            updateContactBox.destroy()
+            createContactsBox = createToplevel(500, 840, "#FFDEAD", root=root)
+            name, surname, birthday, numbers = creatorFieldsForContact(createContactsBox, response=response)
+            Button(createContactsBox, text='Обновить', bg='#ADFF2F', command=sendContact).grid(row=34)
+        else:
+            messagebox.showerror(title="Ошибка", message="Контакта с таким именим и фамилией нет")
+
+    updateContactBox = createToplevel(500, 200, "#FFDEAD", root)
+    Label(updateContactBox, text="Введите Имя:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=0, column=0)
+    nameInst = Entry(updateContactBox, width=31, font=40)
+    nameInst.grid(row=0, column=1)
+    Label(updateContactBox, text="Введите Фамилию:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=1, column=0)
+    surnameInst = Entry(updateContactBox, width=31, font=40)
+    surnameInst.grid(row=1, column=1)
+    Button(updateContactBox, text='Обновить', bg='#ADFF2F', command=sendContactUpdate).grid(row=34)
+
 
 def createContacts():
     def sendContact():
-        correctNumbers = []
-        for number in numbers:
-            correctNumber = number['correctNumber'].get()
-            if correctNumber == "":
-                continue
-            number.update({"correctNumber": str(correctNumber)})
-            number.update({"category": str(number['category'].get())})
-            correctNumbers.append(number)
-        response = requests.post(URL + "contactCreate/",
-                                 json={"numbers": correctNumbers, "name": name.get(), "surname": surname.get(),
-                                       "birthday": birthday.get()})
-        createContactsBox.destroy()
+        if creatorSendContact(URL=URL, name=name, surname=surname, birthday=birthday, numbers=numbers):
+            createContactsBox.destroy()
+            return
 
-
-    createContactsBox=createToplevel(500,840,"#FFDEAD")
-    Label(createContactsBox, text="Введите Имя:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=0, column=0)
-    name = Entry(createContactsBox, width=31, font=40)
-    name.grid(row=0, column=1)
-    Label(createContactsBox, text="Введите Фамилию:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=1, column=0)
-    surname = Entry(createContactsBox, width=31, font=40)
-    surname.grid(row=1, column=1)
-    Label(createContactsBox, text="Введите Дату рождения:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=2, column=0)
-    birthday = Entry(createContactsBox, width=31, font=40)
-    birthday.grid(row=2, column=1)
-    numbers = []
-    for count, iter in enumerate(range(0, 28, 2)):
-        numberDict = {}
-        Label(createContactsBox, text=f"Введите {count + 1} Номер :", font=40, bg='#FFDEAD', justify=LEFT).grid(
-            row=iter + 4, column=0)
-        number = Entry(createContactsBox, width=31, font=40)
-        number.grid(row=iter + 4, column=1)
-        Label(createContactsBox, text=f"Введите категорию для {count + 1} Номера :", font=40, bg='#FFDEAD',
-              justify=LEFT).grid(row=iter + 5, column=0)
-        category = Entry(createContactsBox, width=31, font=40)
-        category.grid(row=iter + 5, column=1)
-        numberDict.update({"correctNumber": number})
-        numberDict.update({"category": category})
-        numbers.append(numberDict)
+    createContactsBox = createToplevel(500, 840, "#FFDEAD", root=root)
+    name, surname, birthday, numbers = creatorFieldsForContact(createContactsBox=createContactsBox)
     Button(createContactsBox, text='Создать', bg='#ADFF2F', command=sendContact).grid(row=34)
-
-
-def onFrameConfigure(canvas):
-    canvas.configure(scrollregion=canvas.bbox("all"))
 
 
 def getAllContacts():
     response = requests.get(URL + "contacts/")
-
-    allContactsBox = Toplevel(root)
-    allContactsBox.geometry('600x400')
-    allContactsBox.resizable(width=False, height=False)
-    canvas = Canvas(allContactsBox, borderwidth=0, bg="#FFC0CB")
-    frame = Frame(canvas, background="#FFC0CB")
-    vsb = Scrollbar(allContactsBox, orient="vertical", command=canvas.yview)
-    canvas.configure(yscrollcommand=vsb.set)
-
-    vsb.pack(side="right", fill="y")
-    canvas.pack(side="left", fill="both", expand=True)
-    canvas.create_window((4, 4), window=frame, anchor="nw")
-
-    frame.bind("<Configure>", lambda event, canvas=canvas: onFrameConfigure(canvas))
-
-    contacts = response.json()
-    print(response.json())
-
-    for count, contact in enumerate(contacts):
-        numbers = f""""""
-        for number in contact['numbers']:
-            numbers += f"""Номер: {str(number['correctNumber'])}\n  Категория: {str(number['category'])}\n\n"""
-        Label(frame,
-              text=f"""КОНТАКТ НОМЕР {count + 1}\nИмя: {str(contact['name'])}\nФамилия: {str(contact['surname'])}\nДень рождения: {str(contact['birthday'])}\n\n{numbers}""",
-              bg='#FFC0CB', font=40).grid(row=count + 1)
-    # button = Button(allContactsBox, text='Закрыть', bg='green')
-    # button.pack()
+    if response.json() == [] or response.status_code != 200:
+        messagebox.showerror(title="Ошибка", message="На данный момент в базе данных нет контактов")
+    else:
+        allContactsBox = createToplevel(600, 400, "#FFC0CB", root=root)
+        frame = createScrollFrame(allContactsBox, "#FFC0CB")
+        enterContacts(frame=frame, contacts=response.json())
 
 
-root = Tk()
+if __name__ == '__main__':
+    root = Tk()
 
-root['bg'] = '#fafafa'
+    root['bg'] = '#fafafa'
+    URL = "http://127.0.0.1:8000/api/"
 
-root.title('Телефонный справочник')
-root.wm_attributes('-alpha', 0.8)
-root.geometry('600x700')
-root.resizable(width=False, height=False)
+    root.title('Телефонный справочник')
+    root.wm_attributes('-alpha', 0.8)
+    root.geometry('600x700')
+    root.resizable(width=False, height=False)
 
-# canvas = Canvas(root, height=600, width=700)
-# canvas.pack()
+    frame = Frame(root, bg='#00FFFF')
+    frame.place(relwidth=1, relheight=1)
 
-frame = Frame(root, bg='#00FFFF')
-frame.place(relwidth=1, relheight=1)
+    Button(frame, text='Посмотреть все контакты', bg='#FF8C00', command=getAllContacts).pack()
+    Button(frame, text='Создать контакт', bg='#FF8C00', command=createContacts).pack()
+    Button(frame, text="Удалить по имени и фамилии", bg='#FF8C00', command=deleteContactByNameAndSurname).pack()
+    Button(frame, text="Фильтр контактов", bg='#FF8C00', command=filterContacts).pack()
+    Button(frame, text="Узнать сколько лет", bg='#FF8C00', command=getAge).pack()
+    Button(frame, text="Изменить контакт", bg='#FF8C00', command=updateContact).pack()
+    Button(frame, text="Удалить контакт по номеру", bg='#FF8C00', command=deleteContactByNumber).pack()
 
-Button(frame, text='Посмотреть все контакты', bg='#FF8C00', command=getAllContacts).pack()
-Button(frame, text='Создать контакт', bg='#FF8C00', command=createContacts).pack()
-Button(frame,text="Удалить по имени и фамилии",bg='#FF8C00', command=deleteContactByNameAndSurname).pack()
-
-root.mainloop()
+    root.mainloop()
