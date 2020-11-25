@@ -95,7 +95,7 @@ def creatorFieldsForContact(createContactsBox, response=None):
     except:
         pass
     numbers = []
-    for count, iter in enumerate(range(0, 28, 2)):
+    for count, iter in enumerate(range(0, 22, 2)):
         numberDict = {}
         Label(createContactsBox, text=f"Введите {count + 1} Номер :", font=40, bg='#FFDEAD', justify=LEFT).grid(
             row=iter + 4, column=0)
