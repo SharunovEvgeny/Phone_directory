@@ -1,8 +1,4 @@
 from tkinter import *
-from tkinter import messagebox
-
-import requests
-
 from interface.createHelper import *
 
 
@@ -132,9 +128,8 @@ def deleteContactByNumber():
             messagebox.showinfo(title="Успешно", message="Контакт удалён")
             deletsBox.destroy()
 
-        if validNumberAndBirthday(correctNumber=number.get()):
+        if not validNumberAndBirthday(correctNumber=number.get()):
             return
-
         response = requests.get(URL + f"contacts/?numbers={number.get()}")
         if response.status_code == 204 or response.status_code == 404 or response.json() == []:
             messagebox.showerror(title="Ошибка", message="Контакта с таким номером нет")
