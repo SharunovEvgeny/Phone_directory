@@ -222,7 +222,6 @@ if __name__ == '__main__':
     URL = "http://127.0.0.1:8000/api/"
 
     root.title('Телефонный справочник')
-    root.wm_attributes('-alpha', 0.8)
     root.geometry('600x400')
     root.resizable(width=False, height=False)
 
