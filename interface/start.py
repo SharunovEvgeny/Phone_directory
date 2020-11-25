@@ -3,8 +3,57 @@ from tkinter import messagebox
 
 import requests
 
-from interface.createHelper import createToplevel, createScrollFrame, enterContacts, validNumberAndBirthday, validData, \
-    age, creatorFieldsForContact, creatorSendContact, chooseContacts
+from interface.createHelper import *
+
+
+def soonBirthday():
+    response = requests.get(URL + f"contacts/?soon=True")
+    sendFilterBox = createToplevel(600, 400, "#FF00FF", root=root)
+    frame = createScrollFrame(sendFilterBox, "#FF00FF")
+    enterContacts(frame=frame, contacts=response.json())
+
+
+def searchBirthday():
+    def sendSearch():
+        if validDayAndMonth(day.get(), month.get()):
+            response = requests.get(URL + f"contacts/?day={day.get()}&month={month.get()}")
+            if response.status_code != 200 or response.json() == []:
+                messagebox.showerror(title="Ошибка", message="Нет таких контактов")
+                return
+            sendFilterBox = createToplevel(600, 400, "#FF00FF", root=root)
+            frame = createScrollFrame(sendFilterBox, "#FF00FF")
+            enterContacts(frame=frame, contacts=response.json())
+        else:
+            return
+
+    searchBox = createToplevel(500, 200, "#FFDEAD", root)
+    Label(searchBox, text="Введите месяц:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=0, column=0)
+    month = Entry(searchBox, width=31, font=40)
+    month.grid(row=0, column=1)
+    Label(searchBox, text="Введите день:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=1, column=0)
+    day = Entry(searchBox, width=31, font=40)
+    day.grid(row=1, column=1)
+    Button(searchBox, text='Узнать', bg='#ADFF2F', command=sendSearch).grid(row=34)
+
+
+def differenceBirthday():
+    def GT():
+        creatorDifferentOrEqualsFunc(params="GT", number=number, URL=URL, root=differenceBirthdayBox)
+
+    def LT():
+        creatorDifferentOrEqualsFunc("LT", number=number, URL=URL, root=differenceBirthdayBox)
+
+    def equals():
+        creatorDifferentOrEqualsFunc("equals", number=number, URL=URL, root=differenceBirthdayBox)
+
+    differenceBirthdayBox = createToplevel(500, 150, "#FFDEAD", root)
+    Label(differenceBirthdayBox, text="Введите количество лет:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=0,
+                                                                                                           column=0)
+    number = Entry(differenceBirthdayBox, width=31, font=40)
+    number.grid(row=0, column=1)
+    Button(differenceBirthdayBox, text='Больше', bg='#ADFF2F', command=GT).grid(row=1)
+    Button(differenceBirthdayBox, text='Меньше', bg='#ADFF2F', command=LT).grid(row=2)
+    Button(differenceBirthdayBox, text='Равно', bg='#ADFF2F', command=equals).grid(row=3)
 
 
 def getAge():
@@ -73,26 +122,28 @@ def filterContacts():
     Label(filterContactsBox, text="Заполните нужные поля:", font=40, bg='#FFDEAD').grid(row=4, column=0)
     Button(filterContactsBox, text='Отфильтровать', bg='#ADFF2F', command=sendFilterContacts).grid(row=4, column=1)
 
+
 def deleteContactByNumber():
     def sendContactDelete():
         def sendContacts():
-            for count,contact in enumerate(contactsDelete):
-                if checkboxs[count].get()==1:
+            for count, contact in enumerate(contactsDelete):
+                if checkboxs[count].get() == 1:
                     requests.delete(URL + f"contactDelete/{contact}")
             messagebox.showinfo(title="Успешно", message="Контакт удалён")
             deletsBox.destroy()
+
+        if validNumberAndBirthday(correctNumber=number.get()):
+            return
+
         response = requests.get(URL + f"contacts/?numbers={number.get()}")
-        if response.status_code == 204 or response.status_code == 404:
+        if response.status_code == 204 or response.status_code == 404 or response.json() == []:
             messagebox.showerror(title="Ошибка", message="Контакта с таким номером нет")
         else:
-            #messagebox.showinfo(title="Успешно", message="Контакт удалён")
             deleteContactBox.destroy()
             deletsBox = createToplevel(700, 700, "#FF00FF", root=root)
             frame = createScrollFrame(deletsBox, "#FF00FF")
-            checkboxs,contactsDelete,countRow=chooseContacts(frame=frame, contacts=response.json())
-            Button(frame, text='Удалить', bg='#ADFF2F', command=sendContacts).grid(row=countRow+2)
-
-
+            checkboxs, contactsDelete, countRow = chooseContacts(frame=frame, contacts=response.json())
+            Button(frame, text='Удалить', bg='#ADFF2F', command=sendContacts).grid(row=countRow + 2)
 
     deleteContactBox = createToplevel(500, 150, "#FFDEAD", root)
     Label(deleteContactBox, text="Введите Номер:", font=40, bg='#FFDEAD', justify=LEFT).grid(row=0, column=0)
@@ -126,8 +177,9 @@ def updateContact():
             if creatorSendContact(URL=URL, name=name, surname=surname, birthday=birthday, numbers=numbers,
                                   isUpdate=True, updateName=intputName, updateSurname=inputSurname):
                 createContactsBox.destroy()
-        inputSurname=surnameInst.get()
-        intputName=nameInst.get()
+
+        inputSurname = surnameInst.get()
+        intputName = nameInst.get()
         response = requests.get(URL + f"contacts/?name={intputName.title()}&surname={inputSurname.title()}")
         if response.json() != [] or response.status_code != 200:
             updateContactBox.destroy()
@@ -176,12 +228,12 @@ if __name__ == '__main__':
 
     root.title('Телефонный справочник')
     root.wm_attributes('-alpha', 0.8)
-    root.geometry('600x700')
+    root.geometry('600x400')
     root.resizable(width=False, height=False)
 
     frame = Frame(root, bg='#00FFFF')
     frame.place(relwidth=1, relheight=1)
-
+    (Label(frame, text="Главное Меню", font=100, bg='#00FFFF', justify=LEFT)).pack()
     Button(frame, text='Посмотреть все контакты', bg='#FF8C00', command=getAllContacts).pack()
     Button(frame, text='Создать контакт', bg='#FF8C00', command=createContacts).pack()
     Button(frame, text="Удалить по имени и фамилии", bg='#FF8C00', command=deleteContactByNameAndSurname).pack()
@@ -189,5 +241,8 @@ if __name__ == '__main__':
     Button(frame, text="Узнать сколько лет", bg='#FF8C00', command=getAge).pack()
     Button(frame, text="Изменить контакт", bg='#FF8C00', command=updateContact).pack()
     Button(frame, text="Удалить контакт по номеру", bg='#FF8C00', command=deleteContactByNumber).pack()
+    Button(frame, text="Скоро день рождения", bg='#FF8C00', command=soonBirthday).pack()
+    Button(frame, text="Узнать контакты по N лет", bg='#FF8C00', command=differenceBirthday).pack()
+    Button(frame, text="Поиск по месяцу и дню рождения", bg='#FF8C00', command=searchBirthday).pack()
 
     root.mainloop()

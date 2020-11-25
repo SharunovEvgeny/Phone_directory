@@ -1,8 +1,11 @@
+import datetime
+
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 
 from api.models import Contact
 from api.serializer import ContactSerializer, ContactDeleteSerializer
+from api.services import getSoonContacts, getDifferentContacts, getDayAndMonthFilter
 
 
 class ContactViewSet(viewsets.ModelViewSet):
@@ -48,7 +51,7 @@ class ContactViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         try:
             contact = Contact.objects.get(name=kwargs['name'], surname=kwargs['surname'])
-            serializer = self.get_serializer(data=request.data,instance=contact)
+            serializer = self.get_serializer(data=request.data, instance=contact)
 
             serializer.is_valid(raise_exception=True)
             try:
@@ -59,6 +62,7 @@ class ContactViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK, headers=headers)
         except:
             return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class ContactReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Contact.objects.all()
@@ -73,6 +77,18 @@ class ContactReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
                        'numbers__correctNumber': self.request.query_params.get('numbers')}
         filter_args = dict((key, value) for key, value in filter_args.items() if value is not None)
         contacts = contacts.filter(**filter_args)
+        soon = self.request.query_params.get('soon')
+        GT= self.request.query_params.get('GT')
+        LT= self.request.query_params.get('LT')
+        equals= self.request.query_params.get('equals')
+        day = self.request.query_params.get('day')
+        month=self.request.query_params.get('month')
+        if day and month:
+            contacts=getDayAndMonthFilter(day,month)
+        if soon=="True":
+            contacts=getSoonContacts()
+        if GT or LT or equals:
+            contacts=getDifferentContacts(GT,LT,equals)
         if contacts:
             return contacts
         else:

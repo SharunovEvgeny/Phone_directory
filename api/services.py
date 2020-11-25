@@ -1,4 +1,7 @@
 import re
+import datetime
+
+from django.db.models import Q
 
 from api.models import Contact, Number
 
@@ -15,7 +18,7 @@ def createOrUpdateContacts(validated_data, update=True, instance=None):
     if isCreate or update:
         contact.birthday = contactData['birthday']
         contact.name = contactData['name']
-        contact.surname=contactData['surname']
+        contact.surname = contactData['surname']
         if numbers != []:
             contact.numbers.clear()
         contact.save()
@@ -35,3 +38,36 @@ def createOrUpdateContacts(validated_data, update=True, instance=None):
     else:
         raise ValueError('Контакт уже есть')
     return contact
+
+
+def getSoonContacts():
+    day = datetime.date.today().day
+    month = datetime.date.today().month
+    nextmonth = month + 1
+    if month == 12:
+        nextmonth = 1
+    return Contact.objects.filter(
+        Q(birthday__month=month, birthday__day__gte=day) | Q(birthday__month=nextmonth, birthday__day__lte=day))
+
+
+def getDifferentContacts(GT, LT, equals):
+    if GT:
+        today = datetime.date.today()
+        year = today.year - int(GT)
+        nextdata=datetime.date(year-1, today.month, today.day)
+        return Contact.objects.filter(birthday__lt=nextdata)
+    elif LT:
+        today = datetime.date.today()
+        year = datetime.date.today().year - int(LT)
+        data=datetime.date(year, today.month, today.day)
+        return Contact.objects.filter(birthday__gt=data)
+    else:
+        today = datetime.date.today()
+        year = today.year - int(equals)
+        data = datetime.date(year, today.month, today.day)
+        nextdata = datetime.date(year - 1, today.month, today.day)
+        return Contact.objects.exclude(Q(birthday__lt=nextdata)|Q(birthday__gt=data))
+
+def getDayAndMonthFilter(day,month):
+    return Contact.objects.filter(birthday__month=int(month),birthday__day=int(day))
+

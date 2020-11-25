@@ -7,6 +7,10 @@ import requests
 
 def creatorSendContact(URL, name, surname, birthday, numbers, isUpdate=False, updateName=None, updateSurname=None):
     correctNumbers = []
+    if name.get() == "" or surname.get() == "":
+        messagebox.showerror(title="Ошибка", message="Имя и фамилия не должны быть пустыми")
+        return False
+
     if not isUpdate:
         responce = requests.get(URL + f"contacts/?name={name.get().title()}&surname={surname.get().title()}")
         if responce.json() != []:
@@ -115,14 +119,31 @@ def creatorFieldsForContact(createContactsBox, response=None):
     return name, surname, birthday, numbers
 
 
+def validNAge(diffrentAge):
+    if not (re.fullmatch(r'\d\d', diffrentAge) or re.fullmatch(r'\d', diffrentAge)):
+        messagebox.showerror(title="Ошибка",
+                             message="Не верный формат количетсва лет\nВведите двухзначное или однозначное число")
+    return False
+
+
 def age(birthday):
     today = datetime.date.today()
     birthday = birthday.split('-')
     birthdayAr = datetime.date(int(birthday[0]), int(birthday[1]), int(birthday[2]))
-    days = abs(today - birthdayAr).days
-    years, days = divmod(days, 365)
-    months, days = divmod(days, 30)
-    return f"\nЛет: {years}\nМесяцев: {months}\nДней: {days}"
+    days = (today - birthdayAr).days
+    years, days = divmod(days, 365.2425)
+    months, days = divmod(days, 365.2425 / 12.0)
+    return f"\nЛет: {int(years)}\nМесяцев: {int(months)}\nДней: {int(days)}"
+
+
+def validDayAndMonth(day, month):
+    try:
+        datetime.date(int(2000), int(str(month)), int(str(day)))
+    except:
+        messagebox.showerror(title="Ошибка", message="Неверно введён месяц или день")
+        return False
+
+    return True
 
 
 def validData(birthday):
@@ -136,7 +157,8 @@ def validNumberAndBirthday(correctNumber=None, birthday=None):
     if correctNumber == "":
         return True
     if correctNumber is not None and not (
-            re.fullmatch(r'8\d\d\d\d\d\d\d\d\d\d', correctNumber) or re.fullmatch(r'\+7\d\d\d\d\d\d\d\d\d\d', correctNumber)):
+            re.fullmatch(r'8\d\d\d\d\d\d\d\d\d\d', correctNumber) or re.fullmatch(r'\+7\d\d\d\d\d\d\d\d\d\d',
+                                                                                  correctNumber)):
         messagebox.showerror(title="Ошибка",
                              message="Не верный формат номера телефона введите +7 или 8 и ещё 10 цифр подряд")
         return False
@@ -202,3 +224,15 @@ def chooseContacts(frame, contacts):
         Checkbutton(frame, text="Удалить", variable=checkboxs[count], onvalue=1, offvalue=0).grid(row=count + 1,
                                                                                                   column=1)
     return checkboxs, contactsDelete, count
+
+
+def creatorDifferentOrEqualsFunc(params, number, URL, root):
+    if validNAge(number.get()):
+        return
+    response = requests.get(URL + f"contacts/?{params}={number.get()}")
+    if response.status_code != 200 or response.json() == []:
+        messagebox.showerror(title="Ошибка", message="Нет таких контактов")
+        return
+    sendFilterBox = createToplevel(600, 400, "#FF00FF", root=root)
+    frame = createScrollFrame(sendFilterBox, "#FF00FF")
+    enterContacts(frame=frame, contacts=response.json())
