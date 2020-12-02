@@ -128,11 +128,11 @@ def deleteContactByNumber():
             messagebox.showinfo(title="Успешно", message="Контакт удалён")
             deletsBox.destroy()
 
-        correctNumber=number.get()
+        correctNumber = number.get()
         if not validNumberAndBirthday(correctNumber=correctNumber):
             return
-        if correctNumber[0]=="+":
-            correctNumber="8"+correctNumber[2:]
+        if correctNumber[0] == "+":
+            correctNumber = "8" + correctNumber[2:]
         response = requests.get(URL + f"contacts/?numbers={correctNumber}")
         if response.status_code == 204 or response.status_code == 404 or response.json() == []:
             messagebox.showerror(title="Ошибка", message="Контакта с таким номером нет")

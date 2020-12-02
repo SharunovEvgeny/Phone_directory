@@ -78,17 +78,17 @@ class ContactReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
         filter_args = dict((key, value) for key, value in filter_args.items() if value is not None)
         contacts = contacts.filter(**filter_args)
         soon = self.request.query_params.get('soon')
-        GT= self.request.query_params.get('GT')
-        LT= self.request.query_params.get('LT')
-        equals= self.request.query_params.get('equals')
+        GT = self.request.query_params.get('GT')
+        LT = self.request.query_params.get('LT')
+        equals = self.request.query_params.get('equals')
         day = self.request.query_params.get('day')
-        month=self.request.query_params.get('month')
+        month = self.request.query_params.get('month')
         if day and month:
-            contacts=getDayAndMonthFilter(day,month)
-        if soon=="True":
-            contacts=getSoonContacts()
+            contacts = getDayAndMonthFilter(day, month)
+        if soon == "True":
+            contacts = getSoonContacts()
         if GT or LT or equals:
-            contacts=getDifferentContacts(GT,LT,equals)
+            contacts = getDifferentContacts(GT, LT, equals)
         if contacts:
             return contacts
         else:

@@ -54,20 +54,20 @@ def getDifferentContacts(GT, LT, equals):
     if GT:
         today = datetime.date.today()
         year = today.year - int(GT)
-        nextdata=datetime.date(year-1, today.month, today.day)
+        nextdata = datetime.date(year - 1, today.month, today.day)
         return Contact.objects.filter(birthday__lt=nextdata)
     elif LT:
         today = datetime.date.today()
         year = datetime.date.today().year - int(LT)
-        data=datetime.date(year, today.month, today.day)
+        data = datetime.date(year, today.month, today.day)
         return Contact.objects.filter(birthday__gt=data)
     else:
         today = datetime.date.today()
         year = today.year - int(equals)
         data = datetime.date(year, today.month, today.day)
         nextdata = datetime.date(year - 1, today.month, today.day)
-        return Contact.objects.exclude(Q(birthday__lt=nextdata)|Q(birthday__gt=data))
+        return Contact.objects.exclude(Q(birthday__lt=nextdata) | Q(birthday__gt=data))
 
-def getDayAndMonthFilter(day,month):
-    return Contact.objects.filter(birthday__month=int(month),birthday__day=int(day))
 
+def getDayAndMonthFilter(day, month):
+    return Contact.objects.filter(birthday__month=int(month), birthday__day=int(day))
